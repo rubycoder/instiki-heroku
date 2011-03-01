@@ -38,6 +38,10 @@ class ApplicationController < ActionController::Base
 
   def check_authorization
     if in_a_web? and authorization_needed? and not authorized?
+      if @web and @web.published?
+        redirect_to :controller => params[:controller], :action => 'published', :id => params[:id]
+        return false
+      end
       redirect_to :controller => 'wiki', :action => 'login', :web => @web_name
       return false
     end
