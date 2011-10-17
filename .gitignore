@@ -1,4 +1,4 @@
-log
-config/database.yml
-db/production.db.sqlite3
-db/development.db.sqlite3
+db/*.sqlite3
+log/*
+*.swp
+cache/*
