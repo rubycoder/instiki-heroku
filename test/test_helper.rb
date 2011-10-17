@@ -65,11 +65,25 @@ end
 # It provides a easy way to test whether a chunk matches a particular string
 # and any the values of any fields that should be set after a match.
 class ContentStub < String
+
+  attr_reader :web
+
   include ChunkManager
   def initialize(str)
     super
     init_chunk_manager
+    @web = Object.new
+    class << @web
+      def address
+        'wiki1'
+      end
+    end
   end
+
+  def url_generator
+     StubUrlGenerator.new
+  end
+     
   def page_link(*); end
 end
 
@@ -86,10 +100,12 @@ module ChunkMatch
 
     # Test if requested parts are correct.
     expected_chunk_state.each_pair do |a_method, expected_value|
-      assert content.chunks.last.kind_of?(chunk_type)
-      assert_respond_to(content.chunks.last, a_method)
-      assert_equal(expected_value, content.chunks.last.send(a_method.to_sym),
+      content.chunks.each do |c|
+        assert c.kind_of?(chunk_type)
+        assert_respond_to(c, a_method)
+        assert_equal(expected_value, c.send(a_method.to_sym),
         "Wrong #{a_method} value")
+      end
     end
   end
 
@@ -105,6 +121,14 @@ class StubUrlGenerator < AbstractUrlGenerator
 
   def initialize
     super(:doesnt_need_controller)
+  end
+
+  def url_for(hash = {})
+    if(hash[:action] == 'list')
+      "/#{hash[:web]}/list"
+    else
+      '../files/pngs'
+    end
   end
 
   def file_link(mode, name, text, web_name, known_file, description)
@@ -127,7 +151,6 @@ class StubUrlGenerator < AbstractUrlGenerator
 
   def page_link(mode, name, text, web_address, known_page)
     link = CGI.escape(name)
-    return %{<span class='wikilink-error'><b>Illegal link (target contains a '.'):</b> #{name}</span>} if name.include?('.')
     title = web_address == 'wiki1' ? '' : " title='#{web_address}'"
     case mode
     when :export

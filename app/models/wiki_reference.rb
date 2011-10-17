@@ -78,9 +78,9 @@ class WikiReference < ActiveRecord::Base
       "AND wiki_references.link_type = '#{REDIRECTED_PAGE}' " +
       "AND pages.web_id = '#{web.id}'"
     row = connection.select_one(sanitize_sql([query, page_name]))
-    row['name'] if row
+    row['name'].as_utf8 if row
   end
-  
+
   def self.pages_in_category(web, category)
     query = 
       "SELECT name FROM pages JOIN wiki_references " +
@@ -88,7 +88,7 @@ class WikiReference < ActiveRecord::Base
       "WHERE wiki_references.referenced_name = ? " +
       "AND wiki_references.link_type = '#{CATEGORY}' " +
       "AND pages.web_id = '#{web.id}'"
-    names = connection.select_all(sanitize_sql([query, category])).map { |row| row['name'] }
+    names = connection.select_all(sanitize_sql([query, category])).map { |row| row['name'].as_utf8 }
   end
   
   def self.list_categories(web)
@@ -130,6 +130,10 @@ class WikiReference < ActiveRecord::Base
   
   def wanted_file?
     link_type == WANTED_FILE
+  end
+
+  def category?
+    link_type == CATEGORY
   end
 
 end

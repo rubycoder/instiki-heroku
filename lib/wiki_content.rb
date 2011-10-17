@@ -7,7 +7,8 @@ require_dependency 'chunks/wiki'
 require_dependency 'chunks/literal'
 require 'chunks/nowiki'
 require 'sanitizer'
-require 'stringsupport'
+require 'instiki_stringsupport'
+require 'set'
 
 
 # Wiki content is just a string that can process itself with a chain of
@@ -53,10 +54,10 @@ module ChunkManager
   def init_chunk_manager
     @chunks_by_type = Hash.new
     Chunk::Abstract::derivatives.each{|chunk_type|
-      @chunks_by_type[chunk_type] = Array.new
+      @chunks_by_type[chunk_type] = Set.new
     }
     @chunks_by_id = Hash.new
-    @chunks = []
+    @chunks = Set.new
     @chunk_id = 0
   end
 
@@ -115,7 +116,7 @@ class WikiContentStub < String
   end
 end
 
-class WikiContent < String
+class WikiContent < ActiveSupport::SafeBuffer
 
   include ChunkManager
   include Sanitizer
@@ -128,7 +129,7 @@ class WikiContent < String
     :mode                => :show
   }.freeze
 
-  attr_reader :web, :options, :revision, :not_rendered, :pre_rendered
+  attr_reader :web, :options, :revision, :not_rendered, :pre_rendered, :url_generator
 
   # Create a new wiki content string from the given one.
   # The options are explained at the top of this file.
@@ -143,6 +144,12 @@ class WikiContent < String
     @options[:active_chunks] = (ACTIVE_CHUNKS - [WikiChunk::Word] ) if @web.brackets_only?
     @options[:hide_chunks] = (HIDE_CHUNKS - [Literal::Math] ) unless
                   [Engines::MarkdownMML, Engines::MarkdownPNG].include?(@options[:engine])
+    if @options[:engine] == Engines::MarkdownPNG
+      @options[:png_url] =
+         @options[:mode] == :export ? 'files/pngs/' :
+           (@url_generator.url_for :controller => 'file', :web => @web.address, 
+             :action => 'file', :id => 'pngs', :only_path => true) + '/'
+    end
 
     @not_rendered = @pre_rendered = nil
 
@@ -175,8 +182,18 @@ class WikiContent < String
     @options[:engine].apply_to(copy)
 
     copy.inside_chunks(@options[:hide_chunks]) do |id|
-      @chunks_by_id[id.to_i].revert
+      @chunks_by_id[id.to_i].revert if @chunks_by_id[id.to_i]
     end
+  end
+
+  def delete_chunks!(types)
+    types.each do |t|
+      @chunks_by_type[t].each do |c|
+        @pre_rendered.sub!(c.mask, '') if @pre_rendered
+        @chunks.delete(c)
+      end
+    end
+    self
   end
 
   def pre_render!
@@ -192,7 +209,8 @@ class WikiContent < String
     @options[:engine].apply_to(self)
     as_utf8
     # unmask in one go. $~[1] is the chunk id
-    gsub!(MASK_RE[ACTIVE_CHUNKS]) do
+    text = self.to_str
+    text.gsub!(MASK_RE[ACTIVE_CHUNKS]) do
       chunk = @chunks_by_id[$~[1].to_i]
       if chunk.nil?
         # if we match a chunkmask that existed in the original content string
@@ -202,7 +220,8 @@ class WikiContent < String
         chunk.unmask_text
       end
     end
-    self.replace xhtml_sanitize(self)
+    self.replace xhtml_sanitize(text)
+    self.html_safe
   end
 
   def page_name

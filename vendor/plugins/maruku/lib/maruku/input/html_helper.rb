@@ -23,8 +23,6 @@ module MaRuKu; module In; module Markdown; module SpanLevelParser
 
 # This class helps me read and sanitize HTML blocks
 
-# I tried to do this with REXML, but wasn't able to. (suggestions?)
-
 	class HTMLHelper
 		include MaRuKu::Strings
 		
@@ -168,9 +166,9 @@ module MaRuKu; module In; module Markdown; module SpanLevelParser
 			"match=#{@m.to_s.inspect}\n"+
 			"Tag stack = #{@tag_stack.inspect} \n"+
 			"Before:\n"+
-			add_tabs(@already,1,'|')+"\n"+
+			@already.gsub(/^/, '|')+"\n"+
 			"After:\n"+
-			add_tabs(@rest,1,'|')+"\n"
+			@rest.gsub(/^/, '|')+"\n"
 			
 		end
 		

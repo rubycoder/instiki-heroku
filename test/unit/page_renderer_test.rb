@@ -44,12 +44,18 @@ class PageRendererTest < ActiveSupport::TestCase
     assert_equal %w( HisWay SmartEngineGUI ), x_test_renderer(@revision).unexisting_pages.sort
   end
 
+  def test_wiki_links_after_empty
+    assert_markup_parsed_as(%{<code></code>\n<p>This is a <span class='newWikiWord'>wikilink<a href=} +
+      %{'../show/wikilink'>?</a></span>.</p>},
+      "<code></code>\n\nThis is a [[wikilink]].")
+  end
+
   def test_content_with_wiki_links
     assert_equal "<p><span class='newWikiWord'>His Way<a href='../show/HisWay'>?</a></span> " +
         "would be <a class='existingWikiWord' href='../show/MyWay'>My Way</a> " +
         "<math class='maruku-mathml' display='inline' xmlns='http://www.w3.org/1998/Math/MathML'>" +
         "<mi>sin</mi><mo stretchy='false'>(</mo><mi>x</mi><mo stretchy='false'>)</mo><semantics>" +
-        "<annotation-xml encoding='SVG1.1'><svg/></annotation-xml></semantics></math> in kinda " +
+        "<annotation-xml encoding='SVG1.1'><svg></svg></annotation-xml></semantics></math> in kinda " +
         "<a class='existingWikiWord' href='../show/ThatWay'>That Way</a> in " +
         "<span class='newWikiWord'>His Way<a href='../show/HisWay'>?</a></span> " +
         %{though <a class='existingWikiWord' href='../show/MyWay'>My Way</a> OverThere \342\200\223 see } +
@@ -158,7 +164,7 @@ END_THM
         %{<div class='maruku-equation'><math class='maruku-mathml' display='block' } +
         %{xmlns='http://www.w3.org/1998/Math/MathML'><mi>sin</mi><mo stretchy='false'>} +
         %{(</mo><mi>x</mi><mo stretchy='false'>)</mo><semantics><annotation-xml encoding='SVG1.1'>} +
-        %{<svg/></annotation-xml></semantics></math><span class='maruku-eq-tex'><code style='display: none;'>} +
+        %{<svg></svg></annotation-xml></semantics></math><span class='maruku-eq-tex'><code style='display: none;'>} +
         %{\\sin(x) \\begin{svg}&lt;svg/&gt;\\end{svg}</code></span></div>},
         "$$\\sin(x) \\begin{svg}<svg/>\\end{svg}$$")
   
@@ -208,9 +214,92 @@ END_THM
         %{<mi>sin</mi><mo stretchy='false'>(</mo><mi>x</mi><mo stretchy='false'>)</mo></math></p>},
         "ecuasi\303\263n $\\sin(x)$")
   
+    assert_markup_parsed_as(
+        %{<div class='maruku-equation'><math class='maruku-mathml' display='block' xmlns='http://w} +
+        %{ww.w3.org/1998/Math/MathML'><mo>⋅</mo><mi>p</mi></math><span class='maruku-eq-tex'><code} +
+        %{ style='display: none;'>\\cdot\np</code></span></div>},
+        "$$\\cdot\np$$")
+  
+  end
+
+  def test_footnotes
+    assert_markup_parsed_as("<p>Ruby on Rails is a web-framework<sup id='fnref:1'><a href='#fn" +
+    ":1' rel='footnote'>1</a></sup>. It uses the MVC<sup id='fnref:2'><a href='#fn:2' rel='foo" +
+    "tnote'>2</a></sup> architecture pattern. It has its good points<sup id='fnref:3'><a href=" +
+    "'#fn:3' rel='footnote'>3</a></sup>.</p>\n<div class='footnotes'><hr/><ol><li id='fn:1'>\n" +
+    "<p>a reusable set of libraries <a href='#fnref:1' rev='footnote'>\342\206\251</a></p>\n</li><li" +
+    " id='fn:2'>\n<p>Model View Controller <a href='#fnref:2' rev='footnote'>\342\206\251</a></p>\n<" +
+    "/li><li id='fn:3'>\n<p>Here are its good points</p>\n\n<ol>\n<li>Ease of use</li>\n\n<li>" +
+    "Rapid development</li>\n</ol>\n<a href='#fnref:3' rev='footnote'>\342\206\251</a></li></ol></div>",
+    "Ruby on Rails is a web-framework[^framework]. It uses the MVC[^MVC] architecture pattern." +
+    " It has its good points[^points].\n\n[^framework]: a reusable set of libraries\n\n[^MVC]:" +
+    " Model View Controller\n\n[^points]: Here are its good points\n1. Ease of use\n2. Rapid d" +
+    "evelopment")
+  end
+
+  def test_ial_in_lists
+
+    assert_markup_parsed_as(
+    "<ul>\n<li>item 1</li>\n\n<li style='color: red;'>" +
+    "item 2</li>\n\n<li>item 3 continues here</li>\n</ul>",
+    "* item 1\n* {: style=\"color:red\"} item 2\n* item 3\n   continues here\n")
+    
+    assert_markup_parsed_as(
+    "<ol start='4'>\n<li>item 1</li>\n\n<li value='10'>" +
+    "item 2</li>\n\n<li>item 3 continues here</li>\n</ol>",
+    "1. item 1\n2. {: value=\"10\"} item 2\n13. item 3\n   continues here\n{: start=\"4\"}")
+
   end
   
+  def test_utf8_in_lists
+
+    assert_markup_parsed_as(
+    "<ul>\n<li>\u041E\u0434\u0438\u043D</li>\n\n<li>\u0414" +
+    "\u0432\u0430</li>\n\n<li>\u0422\u0440\u0438</li>\n</ul>",
+    "* \u041E\u0434\u0438\u043D\n* \u0414\u0432\u0430\n* \u0422\u0440\u0438\n")
+    
+    assert_markup_parsed_as(
+    "<ol>\n<li>\u041E\u0434\u0438\u043D</li>\n\n<li>\u0414"+
+    "\u0432\u0430</li>\n\n<li>\u0422\u0440\u0438</li>\n</ol>",
+    "1. \u041E\u0434\u0438\u043D\n2. \u0414\u0432\u0430\n3. \u0422\u0440\u0438\n")
+
+  end
+
+  def test_sick_lists
+
+    assert_markup_parsed_as(
+    "<ul>\n<li>item 1 19.</li>\n</ul>",
+    "* item 1\n19.\n")
+
+  end
+
   def test_have_latest_itex2mml  
+
+      assert_markup_parsed_as(
+        %{<p>equation <math class='maruku-mathml' displa} +
+        %{y='inline' xmlns='http://www.w3.org/1998/Math/} +
+        %{MathML'><mrow href='http://ex.com' xlink:href=} +
+        %{'http://ex.com' xlink:type='simple' xmlns:xlin} +
+        %{k='http://www.w3.org/1999/xlink'><mn>47.3</mn>} +
+        %{</mrow><mn>47</mn><mo>,</mo><mn>3</mn><mn>47,3} +
+        %{</mn></math></p>},
+        "equation $\\href{http://ex.com}{47.3} 47,3 \\itexnum{47,3}$")
+
+      assert_markup_parsed_as(
+        %{<p>equation <math class='maruku-mathml' displa} +
+        %{y='inline' xmlns='http://www.w3.org/1998/Math/} +
+        %{MathML'><mi>A</mi><mi>\342\200\246</mi><mo>\342\253\275</mo><mi>B</} +
+        %{mi></math></p>},
+        "equation $A\\dots\\sslash B$")
+
+      assert_markup_parsed_as(
+        %{<p>boxed equation <math class='maruku-mathml' } +
+        %{display='inline' xmlns='http://www.w3.org/1998} +
+        %{/Math/MathML'><menclose notation='box'><mrow><} +
+        %{menclose notation='updiagonalstrike'><mi>D</mi} +
+        %{></menclose><mi>\317\210</mi><mo>=</mo><mn>0</} +
+        %{mn></mrow></menclose></math></p>},
+        "boxed equation $\\boxed{\\slash{D}\\psi=0}$")
 
       assert_markup_parsed_as(
         %{<p>equation <math class='maruku-mathml' displa} +
@@ -328,11 +417,12 @@ END_THM
     assert_match_markup_parsed_as(re, textile_and_markdown)
     set_web_property :markup, :textile
     assert_markup_parsed_as(
-      "<p>Markdown heading<br/>================</p>\n\n\n\t<h2>Textile heading</h2>" +
-      "\n\n\n\t<p><strong>some</strong> <b>text</b> <em>with</em> <del>styles</del></p>" +
-      "\n\n\n\t<ul>\n\t<li>list 1</li>\n\t\t<li>list 2</li>\n\t</ul>",
+      "<p>Markdown heading<br/>\n====</p>\n<h2>Textile heading</h2>" +
+      "\n<p><strong>some</strong> <b>text</b> <em>with</em> <del>styles</del></p>" +
+      "\n<ul>\n\t<li>list 1</li>\n\t<li>list 2</li>\n</ul>",
       textile_and_markdown)
-    
+
+# Mixed Textile+Markdown markup not supported by RedCloth 4.x    
     set_web_property :markup, :mixed
     assert_markup_parsed_as(
       "<h1>Markdown heading</h1>\n\n\n\t<h2>Textile heading</h2>\n\n\n\t" +
@@ -340,7 +430,14 @@ END_THM
       "<ul>\n\t<li>list 1</li>\n\t\t<li>list 2</li>\n\t</ul>",
       textile_and_markdown)
   end
-  
+
+  def test_textile_pre
+    set_web_property :markup, :textile
+     assert_markup_parsed_as("<pre>\n<code>\n  a == 16\n</code>\n</pre>\n<p>foo bar" +
+       "<br/>\n<pre><br/>\n<code>\n  b == 16\n</code><br/>\n</pre></p>",
+     "<pre>\n<code>\n  a == 16\n</code>\n</pre>\nfoo bar\n<pre>\n<code>\n  b == 16\n</code>\n</pre>")
+  end
+
   def test_rdoc
     set_web_property :markup, :rdoc
   
@@ -348,7 +445,7 @@ END_THM
         :author => Author.new('DavidHeinemeierHansson'))
   
     assert_equal "<tt>hello</tt> that <span class='newWikiWord'>Smart Engine GUI" +
-        "<a href='../show/SmartEngineGUI'>?</a></span>\n\n", 
+        "<a href='../show/SmartEngineGUI'>?</a></span>", 
         x_test_renderer(@revision).display_content
   end
   
@@ -375,7 +472,13 @@ END_THM
 	    '</span></em></p>', 
         '_should we go ThatWay or ThisWay _')
   end
-  
+
+  def test_content_with_utf8_in_strong
+    assert_markup_parsed_as(
+        "<p>Can we handle <strong>\u221E-gerbe</strong></p>", 
+        "Can we handle **\u221E-gerbe**")
+  end
+
   def test_content_with_redirected_link
     assert_markup_parsed_as(
         "<p>This is a redirected link: <a class='existingWikiWord' href='../show/liquor'>" +
@@ -431,7 +534,7 @@ END_THM
     set_web_property :markup, :textile
     assert_markup_parsed_as(
       "<p>$$<span class='newWikiWord'>foo<a href='../show/foo'>?" +
-      "</a></span>$$<br/>$<span class='newWikiWord'>foo<a " +
+      "</a></span>$$<br/>\n$<span class='newWikiWord'>foo<a " +
       "href='../show/foo'>?</a></span>$</p>",
       "$$[[foo]]$$\n$[[foo]]$")
   end
@@ -464,6 +567,13 @@ END_THM
       "<p>A <code>class SmartEngine</code> would not mark up</p>\n<pre>CodeBlocks</pre>\n<p>would it?</p>", 
       "A <code>class SmartEngine</code> would not mark up\n\n<pre>CodeBlocks</pre>\n\nwould it?")
   end
+
+  def test_inline_html
+    set_web_property :markup, :markdownMML
+    assert_markup_parsed_as(
+      "<p>We discuss the general abstract <a href='http://nlab.mathforge.org/nlab/show/cohesive+(infinity%2C1)-topos#Structures'>structures in a cohesive (\u221E,1)-topos</a> realized.</p>", 
+      "We discuss the general abstract\n<a href=\"http://nlab.mathforge.org/nlab/show/cohesive+(infinity%2C1)-topos#Structures\">structures in a cohesive (\u221E,1)-topos</a> realized.")
+  end
   
 #  def test_content_with_autolink_in_parentheses
 #    assert_markup_parsed_as(
@@ -491,7 +601,7 @@ END_THM
        
     # currently, upper case HTML elements are not allowed
     assert_markup_parsed_as( 
-      "<p>This &lt;IMG SRC='http://hobix.com/sample.jpg' alt=''/&gt; is an inline image link.</p>", 
+      "<p>This &lt;IMG SRC='http://hobix.com/sample.jpg' alt=''&gt;&lt;/IMG&gt; is an inline image link.</p>", 
       'This <IMG SRC="http://hobix.com/sample.jpg" alt="" /> is an inline image link.')
   end
   
@@ -549,7 +659,7 @@ END_THM
         "<a class='existingWikiWord' href='MyWay.html'>My Way</a> " +
         "<math class='maruku-mathml' display='inline' xmlns='http://www.w3.org/1998/Math/MathML'>" +
         "<mi>sin</mi><mo stretchy='false'>(</mo><mi>x</mi><mo stretchy='false'>)</mo><semantics>" +
-        "<annotation-xml encoding='SVG1.1'><svg/></annotation-xml></semantics></math> in kinda " +
+        "<annotation-xml encoding='SVG1.1'><svg></svg></annotation-xml></semantics></math> in kinda " +
         "<a class='existingWikiWord' href='ThatWay.html'>That Way</a> in " +
         "<span class='newWikiWord'>His Way</span> though " +
         %{<a class='existingWikiWord' href='MyWay.html'>My Way</a> OverThere \342\200\223 see } +
@@ -713,7 +823,36 @@ END_THM
     assert_equal WikiReference::INCLUDED_PAGE, references[0].link_type
   end
 
-  def test_references_creation_categories
+  def test_references_creation_redirects
+    new_page = @web.add_page('NewPage', '[[!redirects OtherPage]]',
+        Time.local(2004, 4, 4, 16, 50), 'AlexeyVerkhovsky', x_test_renderer)
+        
+    references = new_page.wiki_references(true)
+    assert_equal 1, references.size
+    assert_equal 'OtherPage', references[0].referenced_name
+    assert_equal WikiReference::REDIRECTED_PAGE, references[0].link_type
+  end
+
+   def test_references_creation_redirects_in_included_page
+    new_page = @web.add_page('NewPage', "[[!redirects OtherPage]]\ncategory: plants",
+        Time.local(2004, 4, 4, 16, 50), 'AlexeyVerkhovsky', x_test_renderer)
+    second_page = @web.add_page('SecondPage', '[[!include NewPage]]',
+        Time.local(2004, 4, 4, 16, 50), 'AlexeyVerkhovsky', x_test_renderer)
+        
+    references = new_page.wiki_references(true)
+    assert_equal 2, references.size
+    assert_equal 'OtherPage', references[0].referenced_name
+    assert_equal WikiReference::REDIRECTED_PAGE, references[0].link_type
+    assert_equal 'plants', references[1].referenced_name
+    assert_equal WikiReference::CATEGORY, references[1].link_type
+
+    references = second_page.wiki_references(true)
+    assert_equal 1, references.size
+    assert_equal 'NewPage', references[0].referenced_name
+    assert_equal WikiReference::INCLUDED_PAGE, references[0].link_type
+  end
+
+ def test_references_creation_categories
     new_page = @web.add_page('NewPage', "Foo\ncategory: NewPageCategory",
         Time.local(2004, 4, 4, 16, 50), 'AlexeyVerkhovsky', x_test_renderer)
 

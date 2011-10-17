@@ -2,7 +2,7 @@ require 'fileutils'
 require 'maruku'
 require 'maruku/ext/math'
 require 'zip/zip'
-require 'stringsupport'
+require 'instiki_stringsupport'
 require 'resolv'
 
 class WikiController < ApplicationController
@@ -68,42 +68,65 @@ class WikiController < ApplicationController
   end
   
   def export_html
-    stylesheet = Rails.root.join('public', 'stylesheets', 'instiki.css').read
     export_pages_as_zip(html_ext) do |page| 
-
-      renderer = PageRenderer.new(page.revisions.last)
+      renderer = PageRenderer.new(page.current_revision)
       rendered_page = <<-EOL
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN" "http://www.w3.org/2002/04/xhtml-math-svg/xhtml-math-svg-flat.dtd" >
-        <html xmlns="http://www.w3.org/1999/xhtml">
-        <head>
-          <title>#{page.plain_name} in #{@web.name}</title>
-          <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>#{page.plain_name} in #{@web.name}</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   
-          <style type="text/css">
-            h1#pageName, .newWikiWord a, a.existingWikiWord, .newWikiWord a:hover { 
-              color: ##{@web ? @web.color : "393" }; 
-            }
-            .newWikiWord { background-color: white; font-style: italic; }
-            #{stylesheet}
-          </style>
-          <style type="text/css">
-            #{@web.additional_style}
-          </style>
-        </head>
-        <body>
-          <h1 id="pageName">
-            <span class="webName">#{@web.name}</span><br />
-            #{page.plain_name}    
-          </h1>
-          #{renderer.display_content_for_export}
-          <div class="byline">
-            #{page.revisions? ? "Revised" : "Created" } on #{ page.revised_at.strftime('%B %d, %Y %H:%M:%S') }
-            by
-            #{ UrlGenerator.new(self).make_link(@web, page.author.name, @web, nil, { :mode => :export }) }
-          </div>
-        </body>
-        </html>
-      EOL
+  <script src="public/javascripts/page_helper.js" type="text/javascript"></script> 
+  <link href="public/stylesheets/instiki.css" media="all" rel="stylesheet" type="text/css" />
+  <link href="public/stylesheets/syntax.css" media="all" rel="stylesheet" type="text/css" />
+  <style type="text/css">
+    h1#pageName, div.info, .newWikiWord a, a.existingWikiWord, .newWikiWord a:hover, [actiontype="toggle"]:hover, #TextileHelp h3 { 
+      color: ##{@web ? @web.color : "393"}; 
+    }
+    a:visited.existingWikiWord {
+      color: ##{darken(@web ? @web.color : "393")};
+    }   
+  </style>
+  
+  <style type="text/css"><!--/*--><![CDATA[/*><!--*/    
+    #{@web ? @web.additional_style : ''}
+  /*]]>*/--></style>
+  <script src="public/javascripts/prototype.js" type="text/javascript"></script>
+  <script src="public/javascripts/effects.js" type="text/javascript"></script>
+  <script src="public/javascripts/dragdrop.js" type="text/javascript"></script>
+  <script src="public/javascripts/controls.js" type="text/javascript"></script>
+  <script src="public/javascripts/application.js" type="text/javascript"></script>
+
+</head>
+<body>
+ <div id="Container">
+  <div id="Content">
+  <h1 id="pageName">
+  #{xhtml_enabled? ? %{<span id="svg_logo"><svg version="1.1" width="100%" height="100%" viewBox='0 -1 180 198' xmlns='http://www.w3.org/2000/svg'>
+      <path id="svg_logo_path" fill="##{@web ? @web.color : "393"}" stroke-width='0.5' stroke='#000' d='
+        M170,60c4,11-1,20-12,25c-9,4-25,3-20,15c5,5,15,0,24,1c11,1,21,11,14,21c-10,15-35,6-48-1c-5-3-27-23-32-10c-1,13,15,10,22,16
+        c11,4,24,14,34,20c12,10,7,25-9,23c-11-1-22-9-30-16c-5-5-13-18-21-9c-2,6,2,11,5,14c9,9,22,14,22,31c-2,8-12,8-18,4c-4-3-9-8-11-13
+        c-3-6-5-18-12-18c-14-1-5,28-18,30c-9,2-13-9-12-16c1-14,12-24,21-31c5-4,17-13,10-20c-9-10-19,12-23,16c-7,7-17,16-31,15
+        c-9-1-18-9-11-17c5-7,14-4,23-6c6-1,15-8,8-15c-5-6-57,2-42-24c7-12,51,4,61,6c6,1,17,4,18-4c2-11-12-7-21-8c-21-2-49-14-49-34
+        c0-5,3-11,8-11C31,42,34,65,42,67c6,1,9-3,8-9C49,49,38,40,40,25c1-5,4-15,13-14c10,2,11,18,13,29c1,8,0,24,7,28c15,0,5-22,4-30
+        C74,23,78,7,87,1c8-4,14,1,16,9c2,11-8,21-2,30c8,2,11-6,14-12c9-14,36-18,30,5c-3,9-12,19-21,24c-6,4-22,10-23,19c-2,14,15,2,18-2
+        c9-9,20-18,33-22C159,52,166,54,170,60' />
+    </svg></span>} : ''}
+  <span class="webName">#{@web.name}</span><br />
+  #{page.plain_name}    
+  </h1>
+#{renderer.display_content_for_export}
+  <div class="byline">
+  #{page.revisions? ? "Revised" : "Created" } on #{ page.revised_at.strftime('%B %d, %Y %H:%M:%S') }
+  by
+  #{ UrlGenerator.new(self).make_link(@web, page.author.name, @web, nil, { :mode => :export }) }
+  </div>
+  </div>
+ </div>
+</body>
+</html>
+EOL
       rendered_page
     end
   end
@@ -161,9 +184,34 @@ class WikiController < ApplicationController
   def atom_with_headlines
     render_atom(hide_description = true)
   end
+  
+  def tex_list
+    return unless is_post
+    if [:markdownMML, :markdownPNG, :markdown].include?(@web.markup)
+      @tex_content = ''
+      # Ruby 1.9.x has ordered hashes; 1.8.x doesn't. So let's just parse the query ourselves.
+      ordered_params = ActiveSupport::OrderedHash[*request.raw_post.split('&').collect {|k_v| k_v.split('=').collect {|x| CGI::unescape(x)}}.flatten]
+      ordered_params.each do |name, p|
+        if p == 'tex' && @web.has_page?(name)
+          @tex_content << "\\section*\{#{Maruku.new(name).to_latex.strip}\}\n\n"
+          @tex_content << Maruku.new(@web.page(name).content).to_latex
+        end
+      end
+    else
+      @tex_content = 'TeX export only supported with the Markdown text filters.'
+    end
+    if @tex_content == ''
+      flash[:error] = "You didn't select any pages to export."
+      redirect_to :back
+      return
+    end
+    expire_action :controller => 'wiki', :web => @web.address, :action => 'list', :category => params['category']
+    render(:layout => 'tex')
+  end
+
 
   def search
-    @query = params['query'].purify
+    @query = params['query'] ? params['query'].purify : ''
     @title_results = @web.select { |page| page.name =~ /#{@query}/i }.sort
     @results = @web.select { |page| page.content =~ /#{@query}/i }.sort
     all_pages_found = (@results + @title_results).uniq
@@ -214,7 +262,7 @@ class WikiController < ApplicationController
       redirect_home
     end
     @link_mode ||= :show
-    @renderer = PageRenderer.new(@page.revisions.last)
+    @renderer = PageRenderer.new(@page.current_revision)
     # to template
   end
 
@@ -228,11 +276,11 @@ class WikiController < ApplicationController
     @page ||= wiki.read_page(@web_name, @page_name)
     @link_mode ||= :publish
     if @page
-       @renderer = PageRenderer.new(@page.revisions.last)
+       @renderer = PageRenderer.new(@page.current_revision)
     else
       real_page = WikiReference.page_that_redirects_for(@web, @page_name)
         if real_page
-          flash[:info] = "Redirected from \"#{@page_name}\"."
+          flash[:info] = "Redirected from \"#{@page_name}\".".html_safe
           redirect_to :web => @web_name, :action => 'published', :id => real_page, :status => 301
         else
           render(:text => "Page '#{@page_name}' not found", :status => 404, :layout => 'error')
@@ -257,11 +305,7 @@ class WikiController < ApplicationController
 
   def save
     render(:status => 404, :text => 'Undefined page name', :layout => 'error') and return if @page_name.nil?
-    unless (request.post? || ENV["RAILS_ENV"] == "test")
-      headers['Allow'] = 'POST'
-      render(:status => 405, :text => 'You must use an HTTP POST', :layout => 'error')
-      return
-    end
+    return unless is_post
     author_name = params['author'].purify
     author_name = 'AnonymousCoward' if author_name =~ /^\s*$/
     
@@ -269,12 +313,11 @@ class WikiController < ApplicationController
       the_content = params['content'].purify
       prev_content = ''
       filter_spam(the_content)
-      raise Instiki::ValidationError.new('Your name cannot contain a "."') if author_name.include? '.'
       cookies['author'] = { :value => author_name.dup.as_bytes, :expires => Time.utc(2030) }
       if @page
         new_name = params['new_name'] ? params['new_name'].purify : @page_name
+        new_name = @page_name if new_name.empty?
         prev_content = @page.current_revision.content
-        raise Instiki::ValidationError.new('Your new title cannot contain a "."') if new_name.include? '.'
         raise Instiki::ValidationError.new('A page named "' + new_name.escapeHTML + '" already exists.') if
             @page_name != new_name && @web.has_page?(new_name)
         wiki.revise_page(@web_name, @page_name, new_name, the_content, Time.now, 
@@ -305,7 +348,7 @@ class WikiController < ApplicationController
   def show
     if @page
       begin
-        @renderer = PageRenderer.new(@page.revisions.last)
+        @renderer = PageRenderer.new(@page.current_revision)
         @show_diff = (params[:mode] == 'diff')
         render :action => 'page'
       # TODO this rescue should differentiate between errors due to rendering and errors in 
@@ -323,11 +366,11 @@ class WikiController < ApplicationController
       if not @page_name.nil? and not @page_name.empty?
         real_page = WikiReference.page_that_redirects_for(@web, @page_name)
         if real_page
-          flash[:info] = "Redirected from \"#{@page_name}\"."
+          flash[:info] = "Redirected from \"#{@page_name}\".".html_safe
           redirect_to :web => @web_name, :action => 'show', :id => real_page, :status => 301
         else
           flash[:info] = "Page \"#{@page_name}\" does not exist.\n" +
-                         "Please create it now, or hit the \"back\" button in your browser."
+                         "Please create it now, or hit the \"back\" button in your browser.".html_safe
           redirect_to :web => @web_name, :action => 'new', :id => @page_name
         end
       else
@@ -340,8 +383,8 @@ class WikiController < ApplicationController
     if @page
       @revisions_by_day = Hash.new { |h, day| h[day] = [] }
       @revision_numbers = Hash.new { |h, id| h[id] = [] }
-      revision_number = @page.revisions.size
-      @page.revisions.reverse.each do |rev|
+      revision_number = @page.rev_ids.size
+      @page.rev_ids.reverse.each do |rev|
         day = Date.new(rev.revised_at.year, rev.revised_at.month, rev.revised_at.day)
         @revisions_by_day[day] << rev
         @revision_numbers[rev.id] = revision_number
@@ -358,7 +401,7 @@ class WikiController < ApplicationController
   end
 
   def source
-    #to template
+    @revision = @page.revisions[params['rev'].to_i - 1] if params['rev']
   end
 
   def tex
@@ -367,11 +410,12 @@ class WikiController < ApplicationController
     else
       @tex_content = 'TeX export only supported with the Markdown text filters.'
     end
+    render(:layout => 'tex')
   end
 
   def s5
     if [:markdownMML, :markdownPNG, :markdown].include?(@web.markup)
-      my_rendered = PageRenderer.new(@page.revisions.last)
+      my_rendered = PageRenderer.new(@page.current_revision)
       @s5_content = my_rendered.display_s5
       @s5_theme = my_rendered.s5_theme
     else
@@ -421,16 +465,26 @@ class WikiController < ApplicationController
     file_path = @wiki.storage_path.join(file_prefix + timestamp + '.zip')
     tmp_path = "#{file_path}.tmp"
 
-    Zip::ZipOutputStream.open(tmp_path) do |zip_out|
+    Zip::ZipFile.open(tmp_path, Zip::ZipFile::CREATE) do |zip_out|
       @web.select.by_name.each do |page|
-        zip_out.put_next_entry("#{CGI.escape(page.name)}.#{file_type}")
-        zip_out.puts(block.call(page))
+        zip_out.get_output_stream("#{CGI.escape(page.name)}.#{file_type}") do |f|
+          f.puts(block.call(page))
+        end
       end
-      # add an index file, if exporting to HTML
+      # add an index file, and the stylesheet and javascript directories, if exporting to HTML
       if file_type.to_s.downcase == html_ext
-        zip_out.put_next_entry "index.#{html_ext}"
-        zip_out.puts "<html xmlns='http://www.w3.org/1999/xhtml'><head>" +
-            "<META HTTP-EQUIV=\"Refresh\" CONTENT=\"0;URL=HomePage.#{file_type}\"></head></html>"
+        zip_out.get_output_stream("index.#{html_ext}") do |f|
+          f.puts "<html xmlns='http://www.w3.org/1999/xhtml'><head>" +
+            "<meta http-equiv=\"Refresh\" content=\"0;URL=HomePage.#{html_ext}\" /></head></html>"
+        end
+        dir = Rails.root.join('public')
+        Dir["#{dir}/{images,javascripts,s5,stylesheets}/**/*"].each do |f|
+          zip_out.add "public#{f.sub(dir.to_s,'')}", f
+        end
+      end
+      files = @web.files_path
+      Dir["#{files}/**/*"].each do |f|
+        zip_out.add "files#{f.sub(files.to_s,'')}", f
       end
     end
     FileUtils.rm_rf(Dir[@wiki.storage_path.join(file_prefix + '*.zip').to_s])
@@ -452,7 +506,7 @@ class WikiController < ApplicationController
     if params['rev']
       @revision_number = params['rev'].to_i
     else
-      @revision_number = @page.revisions.size
+      @revision_number = @page.rev_ids.size
     end
     @revision = @page.revisions[@revision_number - 1]
   end

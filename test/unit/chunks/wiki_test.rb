@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# encoding: UTF-8
+#coding: UTF-8
 
 require Rails.root.join('test', 'test_helper')
 require 'chunks/wiki'
@@ -10,6 +10,14 @@ class WikiTest < Test::Unit::TestCase
 
   def test_simple
 	match(WikiChunk::Word, 'This is a WikiWord okay?', :page_name => 'WikiWord')
+  end
+
+  def test_cyrillic
+	match(WikiChunk::Word, 'This is a НовойСтраницы okay?', :page_name => 'НовойСтраницы')
+  end
+
+  def test_cyrillic_lowercase
+	no_match(WikiChunk::Word, 'This is a Новойстраницы?')
   end
 
   def test_lowercase_accented
@@ -122,11 +130,12 @@ class WikiTest < Test::Unit::TestCase
   def assert_link_parsed_as(expected_page_name, expected_link_text, expected_link_type, link)
     link_to_file = ContentStub.new(link)
     WikiChunk::Link.apply_to(link_to_file)
-    chunk = link_to_file.chunks.last
-    assert chunk
-    assert_equal expected_page_name, chunk.page_name
-    assert_equal expected_link_text, chunk.link_text
-    assert_equal expected_link_type, chunk.link_type
+    link_to_file.chunks.each do |chunk|
+      assert chunk
+      assert_equal expected_page_name, chunk.page_name
+      assert_equal expected_link_text, chunk.link_text
+      assert_equal expected_link_type, chunk.link_type
+    end
   end
   
 end

@@ -1,5 +1,5 @@
 <%- 
-  @title = "Editing #{@page.name.escapeHTML}"
+  @title = "Editing #{@page.name.escapeHTML}".html_safe
   @content_width = 720
   @hide_navigation = true
 -%>
@@ -55,7 +55,8 @@ function toggleVisibility() {
 }
 
 function addRedirect(){
-  if (document.getElementById('new_name').value != "<%= escape_javascript(@page.name) %>" ) {
+  var e = document.getElementById('new_name').value;
+  if ( e != "<%= escape_javascript(@page.name) %>" && e != '') {
     var content = document.getElementById('content');
     content.value = '[[!redirects <%= escape_javascript(@page.name) %>]]\n' + content.value
     }
@@ -68,6 +69,12 @@ function cleanAuthorName() {
 }
 
 document.forms["editForm"].elements["content"].focus();
+<%- if [:markdownMML, :markdownPNG, :markdown].include?(@web.markup) -%>
+setupSVGedit('<%= compute_public_path("editor/svg-editor.html", "svg-edit").split(/\?/)[0] %>');
+<%- unless @page.categories.include?('S5-slideshow') -%>
+addS5button('<%= @page.name.escapeHTML %>');
+<%- end -%>
+<%- end -%>
 //--><!]]>
 </script>
 

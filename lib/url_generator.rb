@@ -1,4 +1,4 @@
-require 'stringsupport'
+require 'instiki_stringsupport'
 
 class AbstractUrlGenerator
 
@@ -53,7 +53,10 @@ class AbstractUrlGenerator
       raise "Unknown link type: #{link_type}"
     end
   end
-  
+
+  def url_for(hash = {})
+    @controller.url_for hash
+  end  
 end
 
 class UrlGenerator < AbstractUrlGenerator
@@ -64,7 +67,7 @@ class UrlGenerator < AbstractUrlGenerator
     case mode
     when :export
       if known_file
-        %{<a class="existingWikiWord" title="#{description}" href="#{CGI.escape(name)}.#{html_ext}">#{text}</a>}
+        %{<a class="existingWikiWord" title="#{description}" href="files/#{CGI.escape(name)}">#{text}</a>}
       else 
         %{<span class="newWikiWord">#{text}</span>}
       end
@@ -88,7 +91,6 @@ class UrlGenerator < AbstractUrlGenerator
   end
 
   def page_link(mode, name, text, web_address, known_page)
-    return %{<span class='wikilink-error'><b>Illegal link (target contains a '.'):</b> #{name}</span>} if name.include?('.')
     case mode
     when :export
       if known_page 
@@ -119,7 +121,7 @@ class UrlGenerator < AbstractUrlGenerator
     case mode
     when :export
       if known_pic 
-        %{<img alt="#{text}" src="#{CGI.escape(name)}" />}
+        %{<img alt="#{text}" src="files/#{CGI.escape(name)}" />}
       else 
         %{<img alt="#{text}" src="no image" />}
       end
@@ -144,7 +146,7 @@ class UrlGenerator < AbstractUrlGenerator
     case mode
     when :export
       if known_media 
-        %{<#{media_type} src="#{CGI.escape(name)}" controls="controls">#{text}</#{media_type}>}
+        %{<#{media_type} src="files/#{CGI.escape(name)}" controls="controls">#{text}</#{media_type}>}
       else 
         text
       end

@@ -6,7 +6,7 @@ module WikiHelper
     menu << back_for_revision if @revision_number > 1
     menu << current_revision
     menu << see_or_hide_changes_for_revision if @revision_number > 1
-    menu << history if @page.revisions.size > 1
+    menu << history if @page.rev_ids.size > 1
     menu << rollback
     menu
   end
@@ -15,11 +15,11 @@ module WikiHelper
     menu = []
     menu << edit_page
     menu << edit_web if @page.name == "HomePage"
-    if @page.revisions.size > 1
+    if @page.rev_ids.size > 1
       menu << back_for_page
       menu << see_or_hide_changes_for_page
     end
-    menu << history if @page.revisions.size > 1
+    menu << history if @page.rev_ids.size > 1
     menu
   end
 
@@ -40,15 +40,15 @@ module WikiHelper
   end
             
   def forward
-    if @revision_number < @page.revisions.size - 1
+    if @revision_number < @page.rev_ids.size - 1
       link_to('Forward in time', 
           {:web => @web.address, :action => 'revision', :id => @page.name, :rev => @revision_number + 1},
           {:class => 'navlink', :accesskey => 'F', :id => 'to_next_revision', :rel => 'nofollow'}) + 
-          " <span class='revisions'>(#{@revision.page.revisions.size - @revision_number} more)</span> "
+          " <span class='revisions'>(#{@revision.page.rev_ids.size - @revision_number} more)</span> ".html_safe
     else
         link_to('Forward in time', {:web => @web.address, :action => 'show', :id => @page.name},
             {:class => 'navlink', :accesskey => 'F', :id => 'to_next_revision', :rel => 'nofollow'}) +
-            " <span class='revisions'>(to current)</span>"
+            " <span class='revisions'>(to current)</span>".html_safe
     end
   end
     
@@ -56,15 +56,15 @@ module WikiHelper
     link_to('Back in time',
         {:web => @web.address, :action => 'revision', :id => @page.name, :rev => @revision_number - 1},
         {:class => 'navlink', :id => 'to_previous_revision', :rel => 'nofollow'}) + 
-        " <span class='revisions'>(#{@revision_number - 1} more)</span>"
+        " <span class='revisions'>(#{@revision_number - 1} more)</span>".html_safe
   end
 
   def back_for_page
     link_to('Back in time', 
         {:web => @web.address, :action => 'revision', :id => @page.name, 
-        :rev => @page.revisions.size - 1},
+        :rev => @page.rev_ids.size - 1},
         {:class => 'navlink', :accesskey => 'B', :id => 'to_previous_revision', :rel => 'nofollow'}) +
-        " <span class='revisions'>(#{@page.revisions.size - 1} #{@page.revisions.size - 1 == 1 ? 'revision' : 'revisions'})</span>"
+        " <span class='revisions'>(#{@page.rev_ids.size - 1} #{@page.rev_ids.size - 1 == 1 ? 'revision' : 'revisions'})</span>".html_safe
   end
   
   def current_revision
