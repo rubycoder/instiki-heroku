@@ -42,7 +42,7 @@
 					opacity: 1
 				},
 				initStroke: {
-					width: 5,
+					width: 2,
 					color: '000000',  // solid black
 					opacity: 1
 				},
@@ -915,11 +915,14 @@
 					
 					var timer;
 					
+					var pos = $(show_sel).position();
+					$(hold_sel).css({'left': pos.left+34, 'top': pos.top+77});
+					
 					// Clicking the "show" icon should set the current mode
 					shower.mousedown(function(evt) {
 						if(shower.hasClass('disabled')) return false;
-						var holder = $(show_sel.replace('_show',''));
-						var l = holder[0].style.left;
+						var holder = $(hold_sel);
+						var l = pos.left+34;
 						var w = holder.width()*-1;
 						var time = holder.data('shown_popop')?200:0;
 						timer = setTimeout(function() {
@@ -948,9 +951,6 @@
 					});
 					
 					// 	$('#tools_rect').mouseleave(function(){$('#tools_rect').fadeOut();});
-					
-					var pos = $(show_sel).position();
-					$(hold_sel).css({'left': pos.left+34, 'top': pos.top+77});
 				});
 				
 				setFlyoutTitles();
@@ -2137,7 +2137,9 @@
 			// Made public for UI customization.
 			// TODO: Group UI functions into a public svgEditor.ui interface.
 			Editor.addDropDown = function(elem, callback, dropUp) {
+				if ($(elem).length == 0) return; // Quit if called on non-existant element
 				var button = $(elem).find('button');
+				
 				var list = $(elem).find('ul').attr('id', $(elem)[0].id + '-list');
 				
 				if(!dropUp) {
@@ -3277,8 +3279,13 @@
 			
 			(function() {
 				workarea.scroll(function() {
-					$('#ruler_x')[0].scrollLeft = workarea[0].scrollLeft;
-					$('#ruler_y')[0].scrollTop = workarea[0].scrollTop;
+					// TODO:  jQuery's scrollLeft/Top() wouldn't require a null check
+					if ($('#ruler_x').length != 0) {
+						$('#ruler_x')[0].scrollLeft = workarea[0].scrollLeft;
+					}
+					if ($('#ruler_y').length != 0) {
+						$('#ruler_y')[0].scrollTop = workarea[0].scrollTop;	
+					}
 				});
 
 			}());
@@ -3994,7 +4001,7 @@
 					{sel:'#tool_source_cancel,#svg_source_overlay,#tool_docprops_cancel,#tool_prefs_cancel', fn: cancelOverlays, evt: 'click', key: ['esc', false, false], hidekey: true},
 					{sel:'#tool_source_save', fn: saveSourceEditor, evt: 'click'},
 					{sel:'#tool_docprops_save', fn: saveDocProperties, evt: 'click'},
-					{sel:'#tool_docprops', fn: showDocProperties, evt: 'mouseup', key: ['D', true]},
+					{sel:'#tool_docprops', fn: showDocProperties, evt: 'mouseup'},
 					{sel:'#tool_prefs_save', fn: savePreferences, evt: 'click'},
 					{sel:'#tool_prefs_option', fn: function() {showPreferences();return false}, evt: 'mouseup'},
 					{sel:'#tool_delete,#tool_delete_multi', fn: deleteSelected, evt: 'click', key: ['del/backspace', true]},
@@ -4227,8 +4234,11 @@
 				}
 				
 				$('#rulers').toggle(!!curConfig.showRulers);
-				$('#show_rulers')[0].checked = curConfig.showRulers;
 				
+				if (curConfig.showRulers) {
+					$('#show_rulers')[0].checked = true;	
+				}
+
 				if(curConfig.gridSnapping) {
 					$('#grid_snapping_on')[0].checked = true;
 				}
@@ -4637,7 +4647,7 @@
 				updateCanvas(true);
 // 			});
 			
-		//	var revnums = "svg-editor.js ($Rev: 2028 $) ";
+		//	var revnums = "svg-editor.js ($Rev: 2042 $) ";
 		//	revnums += svgCanvas.getVersion();
 		//	$('#copyright')[0].setAttribute("title", revnums);
 		

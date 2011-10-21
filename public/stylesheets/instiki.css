@@ -100,6 +100,12 @@ border: 3px solid blue;
 padding: 2px;
 }
 
+.badWikiWord {
+background-color:#FCC;
+border: 1px solid blue;
+padding: 1px;
+}
+
 .deleteWikiWord:hover, .deleteWikiWord a:hover {
 background-color:#F88;
 }
@@ -476,6 +482,7 @@ span.theorem_label {font-style:normal; font-weight:bold;}
    content: " " counter(remark); counter-increment: remark;}
 .num_note .theorem_label:after {
    content: " " counter(note); counter-increment: note;}
+.tombstone {text-align:right;}
 
 /* Hack for Mozilla bug 449396 */
 [mathvariant="bold"] *  {
