@@ -80,7 +80,7 @@ class E2EInstikiTest < Test::Unit::TestCase
     links_to_homepage.each { |link| assert_equal url(:show, 'HomePage'), link.href }
 
     # Check also the "created on ... by ..." footnote
-    assert_match Regexp.new('Created on ' + date_pattern + ' by Anonymous Coward\?'), ie.text
+    assert_match Regexp.new('Created on ' + date_pattern + ' by Anonymous\?'), ie.text
   end
   
   def test_00030_edit_page
@@ -90,7 +90,7 @@ class E2EInstikiTest < Test::Unit::TestCase
     # subsequent revision by the anonymous author
     enter_markup('TestEditPage', 'Test Edit Page, revision 1, altered')
     assert_match /Test Edit Page, revision 1, altered/, ie.text
-    assert_match Regexp.new('Created on ' + date_pattern + ' by Anonymous Coward\?'), ie.text
+    assert_match Regexp.new('Created on ' + date_pattern + ' by Anonymous\?'), ie.text
     
     # revision by a named author
     enter_markup('TestEditPage', 'Test Edit Page, revision 2', 'Author')
@@ -187,9 +187,9 @@ require 'breakpoint'; breakpoint
     assert_equal ['Another Wiki Page', '?', 'Test Edit Page', '?', 'Home Page', '?'], links[-6..-1]  
     
     expected_text = 
-        'Another Wiki Page.*by Anonymous Coward\?.*' +
-        'Test Edit Page.*by Anonymous Coward\?.*' +
-        'Home Page.*by Anonymous Coward\?.*'
+        'Another Wiki Page.*by Anonymous\?.*' +
+        'Test Edit Page.*by Anonymous\?.*' +
+        'Home Page.*by Anonymous\?.*'
     assert_match Regexp.new(expected_text, Regexp::MULTILINE), ie.text
   end
   
@@ -203,7 +203,7 @@ require 'breakpoint'; breakpoint
     ie.link(:text, 'Authors').click
 
     expected_authors = 
-        'Anonymous Coward\? co- or authored: Another Wiki Page, Home Page, Test Edit Page.*' +
+        'Anonymous\? co- or authored: Another Wiki Page, Home Page, Test Edit Page.*' +
         'Another Author co- or authored: Another Author, Test Edit Page.*' +
         'Author\? co- or authored: Test Edit Page'
     assert_match Regexp.new(expected_authors, Regexp::MULTILINE), ie.text
