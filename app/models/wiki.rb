@@ -35,7 +35,8 @@ class Wiki
     @webs = nil
     raise Instiki::ValidationError.new("There is already a web with address '#{new_address}'") unless web.errors.on(:address).nil?
     web
-    move_files(old_files_path, web.files_path)
+    # move_files gets an error on Heroku
+    # move_files(old_files_path, web.files_path)
   end
   
   def move_files(old_path, new_path)
