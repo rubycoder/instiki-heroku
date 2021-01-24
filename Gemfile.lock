@@ -7,7 +7,7 @@ GEM
     erubis (2.7.0)
     gem_plugin (0.2.3)
     itextomml (1.4.10)
-    json (1.7.3)
+    json (1.8.6)
     mongrel (1.2.0.pre2)
       daemons (~> 1.0.10)
       gem_plugin (~> 0.2.3)
